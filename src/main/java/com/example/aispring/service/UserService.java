@@ -6,6 +6,7 @@ import com.example.aispring.DTO.command.UserLoginCommandDTO;
 import com.example.aispring.DTO.response.UserLoginResponseDTO;
 import com.example.aispring.common.Result;
 import com.example.aispring.entity.User;
+import com.example.aispring.exception.BusinessException;
 import com.example.aispring.mapper.UserMapper;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
@@ -23,6 +24,9 @@ public class UserService {
          //调用MP API查询
         User user = userMapper.selectOne(queryWrapper);
         System.out.println(user);
+        if(user == null){
+            throw new BusinessException("用户不存在");
+        }
        return null;
    }
 }
