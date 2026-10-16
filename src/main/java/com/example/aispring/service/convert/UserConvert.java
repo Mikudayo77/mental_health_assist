@@ -1,7 +1,11 @@
 package com.example.aispring.service.convert;
 
+import com.example.aispring.DTO.command.UserRegisterCommandDTO;
 import com.example.aispring.DTO.response.UserLoginResponseDTO;
 import com.example.aispring.entity.User;
+import com.example.aispring.enumClass.UserStatus;
+
+import java.time.LocalDateTime;
 
 public class UserConvert {
     public static UserLoginResponseDTO.UserDetailResponseDTO entityToDetailResponse(User user) {
@@ -31,11 +35,23 @@ public class UserConvert {
                 .roleType(userInfo.getUserType().toString())
                 .build();
     }
-    /**
-     * 获取性别显示名称
-     * @param gender 性别代码
-     * @return 性别显示名称
-     */
+
+public static User registerCommandToEntity(UserRegisterCommandDTO commandDTO,String encodePassword) {
+
+        return User.builder()
+                .username(commandDTO.getUsername())
+                .email(commandDTO.getEmail())
+                .password(encodePassword)
+                .nickname(commandDTO.getNickname())
+                .phone(commandDTO.getPhone())
+                .gender(commandDTO.getGender())
+                .birthday(commandDTO.getBirthday())
+                .userType(commandDTO.getUserType()) // 默认普通用户
+                .status(UserStatus.NORMAL.getCode()) // 默认启用状态
+                .createdAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .build();
+    }
     private static String getGenderDisplayName(Integer gender) {
         if (gender == null) {
             return "未知";
