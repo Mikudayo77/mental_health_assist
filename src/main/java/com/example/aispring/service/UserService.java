@@ -2,8 +2,8 @@ package com.example.aispring.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.example.aispring.DTO.command.UserLoginCommandDTO;
+import com.example.aispring.DTO.command.UserRegisterCommandDTO;
 import com.example.aispring.DTO.response.UserLoginResponseDTO;
-import com.example.aispring.common.Result;
 import com.example.aispring.entity.User;
 import com.example.aispring.enumClass.UserStatus;
 import com.example.aispring.exception.BusinessException;
@@ -13,6 +13,8 @@ import com.example.aispring.util.JwtTokenUtil;
 import jakarta.annotation.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Service
 public class UserService {
@@ -45,5 +47,36 @@ public class UserService {
        System.out.println(token);
        UserLoginResponseDTO.UserDetailResponseDTO userInfo = UserConvert.entityToDetailResponse(user);
        return UserConvert.entityToLoginResponse(token, userInfo);
+   }
+
+   public UserLoginResponseDTO.UserDetailResponseDTO register(UserRegisterCommandDTO commandDTO) {
+       // 校验两次密码是否一致
+       if(!commandDTO.getPassword().equals(commandDTO.getConfirmPassword())){
+           throw new BusinessException("两次输入的密码不一致");
+       }
+       // 校验用户名是否已存在
+       if(userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getUsername, commandDTO.getUsername())) > 0){
+           throw new BusinessException("用户名已存在");
+       }
+       // 校验邮箱是否已被注册
+       if(userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getEmail, commandDTO.getEmail())) > 0){
+           throw new BusinessException("邮箱已被注册");
+       }
+       // 构建用户实体
+       User user = new User();
+       user.setUsername(commandDTO.getUsername());
+       user.setEmail(commandDTO.getEmail());
+       user.setNickname(commandDTO.getNickname());
+       user.setPhone(commandDTO.getPhone());
+       user.setGender(commandDTO.getGender());
+       user.setBirthday(commandDTO.getBirthday());
+       user.setUserType(commandDTO.getUserType() != null ? commandDTO.getUserType() : 1);
+       user.setPassword(passwordEncoder.encode(commandDTO.getPassword()));
+       user.setStatus(UserStatus.NORMAL.getCode());
+       user.setCreatedAt(LocalDateTime.now());
+       user.setUpdatedAt(LocalDateTime.now());
+       // 保存
+       userMapper.insert(user);
+       return UserConvert.entityToDetailResponse(user);
    }
 }

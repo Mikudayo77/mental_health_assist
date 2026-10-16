@@ -1,6 +1,7 @@
 package com.example.aispring.controller;
 
 import com.example.aispring.DTO.command.UserLoginCommandDTO;
+import com.example.aispring.DTO.command.UserRegisterCommandDTO;
 import com.example.aispring.DTO.response.UserLoginResponseDTO;
 import com.example.aispring.common.Result;
 import com.example.aispring.service.UserService;
@@ -22,7 +23,13 @@ public class User {
     public Result<UserLoginResponseDTO> login(@Valid @RequestBody UserLoginCommandDTO commandDTO) {
         System.out.println(commandDTO.getUsername());
         System.out.println(commandDTO.getPassword());
-        UserLoginResponseDTO result =  userService.login(commandDTO);
+        UserLoginResponseDTO result = userService.login(commandDTO);
+        return Result.ok(result);
+    }
+
+    @PostMapping("/add")
+    public Result<UserLoginResponseDTO.UserDetailResponseDTO> register(@Valid @RequestBody UserRegisterCommandDTO commandDTO) {
+        UserLoginResponseDTO.UserDetailResponseDTO result = userService.register(commandDTO);
         return Result.ok(result);
     }
 }
