@@ -22,7 +22,7 @@ public class User {
     public Result<UserLoginResponseDTO> login(@Valid @RequestBody UserLoginCommandDTO commandDTO) {
         System.out.println(commandDTO.getUsername());
         System.out.println(commandDTO.getPassword());
-        Result<UserLoginResponseDTO> result =  userService.login(commandDTO);
-        return result;
+        UserLoginResponseDTO result =  userService.login(commandDTO);
+        return Result.ok(result);
     }
 }

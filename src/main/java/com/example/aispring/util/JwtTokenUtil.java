@@ -5,9 +5,10 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.example.aispring.config.JwtConfig;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.stereotype.Component;
 
 import java.util.Date;
-
+@Component
 public class JwtTokenUtil implements ApplicationContextAware {
     private static final String ISSUER = "mental-health-assistant";
     private static ApplicationContext applicationContext;

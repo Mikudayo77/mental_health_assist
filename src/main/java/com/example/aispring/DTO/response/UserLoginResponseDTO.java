@@ -1,42 +1,36 @@
 package com.example.aispring.DTO.response;
 
-import com.example.aispring.DTO.command.UserLoginCommandDTO;
+import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+
 @Data
+@Builder
 public class UserLoginResponseDTO {
     private String token;
-    private String roletype;
-    private UserDetailResponseDTO userinfo;
-//    "id": 71,
-//            "username": "string",
-//            "email": "string",
-//            "nickname": "string",
-//            "phone": "string",
-//            "gender": 0,
-//            "genderDisplayName": "未知",
-//            "userType": 1,
-//            "userTypeDisplayName": "普通用户",
-//            "status": 1,
-//            "statusDisplayName": "正常",
-//            "displayName": "string",
-//            "createdAt": "2026-03-06 21:17:50",
-//            "updatedAt": "2026-03-06 21:17:50"
+    private String roleType;
+    private UserDetailResponseDTO userInfo;
+
     @Data
+    @Builder
     public static class UserDetailResponseDTO {
-        private long id;
+        private Long id;
         private String username;
         private String email;
         private String nickname;
+        private String avatar;
         private String phone;
         private Integer gender;
         private String genderDisplayName;
+        private LocalDate birthday;
         private Integer userType;
         private String userTypeDisplayName;
         private Integer status;
         private String statusDisplayName;
         private String displayName;
-        private String createdAt;
-        private String updatedAt;
+        private LocalDateTime createdAt;
+        private LocalDateTime updatedAt;
     }
 }

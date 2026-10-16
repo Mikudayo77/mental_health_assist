@@ -8,6 +8,8 @@ import com.example.aispring.entity.User;
 import com.example.aispring.enumClass.UserStatus;
 import com.example.aispring.exception.BusinessException;
 import com.example.aispring.mapper.UserMapper;
+import com.example.aispring.service.convert.UserConvert;
+import com.example.aispring.util.JwtTokenUtil;
 import jakarta.annotation.Resource;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -17,7 +19,7 @@ public class UserService {
     @Resource
     private UserMapper userMapper;
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
-   public Result<UserLoginResponseDTO> login(UserLoginCommandDTO commandDTO) {
+   public UserLoginResponseDTO login(UserLoginCommandDTO commandDTO) {
        //查询条件
        LambdaQueryWrapper<User> queryWrapper = new LambdaQueryWrapper<>();
          queryWrapper.eq(User::getUsername, commandDTO.getUsername())
@@ -38,6 +40,10 @@ public class UserService {
        if(!UserStatus.NORMAL.getCode().equals(user.getStatus())){
            throw new BusinessException("用户已禁用");
        }
-       return null;
+       // 生成JWT token
+       String token = JwtTokenUtil.generateToken(String.valueOf(user.getId()), user.getUsername(), String.valueOf(user.getUserType()));
+       System.out.println(token);
+       UserLoginResponseDTO.UserDetailResponseDTO userInfo = UserConvert.entityToDetailResponse(user);
+       return UserConvert.entityToLoginResponse(token, userInfo);
    }
 }

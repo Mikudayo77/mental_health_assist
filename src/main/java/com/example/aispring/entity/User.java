@@ -3,6 +3,8 @@ import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
+import com.example.aispring.enumClass.UserStatus;
+import com.example.aispring.enumClass.UserType;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -89,31 +91,31 @@ public class User {
 ////        return UserStatus.DISABLED.getCode().equals(this.status);
 ////    }
 ////
-//    /**
-//     * 获取显示名称（优先显示昵称，否则显示用户名）
-//     */
-//    public String getDisplayName() {
-//        return nickname != null && !nickname.trim().isEmpty() ? nickname : username;
-//    }
-//
-//    /**
-//     * 获取用户类型显示名称
-//     */
-//    public String getUserTypeDisplayName() {
-//        try {
-//            return UserType.fromCode(userType).getDescription();
-//        } catch (IllegalArgumentException e) {
-//            return "未知";
-//        }
-//    }
-//    /**
-//     * 获取用户状态显示名称
-//     */
-//    public String getStatusDisplayName() {
-//        try {
-//            return UserStatus.fromCode(status).getDescription();
-//        } catch (IllegalArgumentException e) {
-//            return "未知";
-//        }
-//    }
+    /**
+     * 获取显示名称（优先显示昵称，否则显示用户名）
+     */
+    public String getDisplayName() {
+        return nickname != null && !nickname.trim().isEmpty() ? nickname : username;
+    }
+
+    /**
+     * 获取用户类型显示名称
+     */
+    public String getUserTypeDisplayName() {
+        try {
+            return UserType.fromCode(userType).getDescription();
+        } catch (IllegalArgumentException e) {
+            return "未知";
+        }
+    }
+    /**
+     * 获取用户状态显示名称
+     */
+    public String getStatusDisplayName() {
+        try {
+            return UserStatus.fromCode(status).getDescription();
+        } catch (IllegalArgumentException e) {
+            return "未知";
+        }
+    }
 }
