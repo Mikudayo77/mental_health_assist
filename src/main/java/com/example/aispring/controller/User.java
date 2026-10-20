@@ -34,13 +34,13 @@ public class User {
 
     @GetMapping("/current")
     public Result<UserLoginResponseDTO.UserDetailResponseDTO> getCurrentUser() {
-        // 如何从token中解析出用户的id
-//        String token = JwtTokenUtil.getCurrentToken();
-//        DecodedJWT jwt = JwtTokenUtil.verifyToken(token);
-//        Long userId = jwt.getClaim("userId").asLong();
-//        // 调用service层获取用户详情
-//        UserLoginResponseDTO.UserDetailResponseDTO result = userService.getUserById(userId);
-//        return Result.ok(result);
-        return null;
+//         如何从token中解析出用户的id
+        String token = JwtTokenUtil.getCurrentToken();
+        DecodedJWT jwt = JwtTokenUtil.verifyToken(token);
+        Long userId = jwt.getClaim("userId").asLong();
+        // 调用service层获取用户详情
+        UserLoginResponseDTO.UserDetailResponseDTO result = userService.getUserById(userId);
+        return Result.ok(result);
+
     }
 }

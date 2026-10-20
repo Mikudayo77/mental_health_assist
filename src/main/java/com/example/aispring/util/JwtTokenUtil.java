@@ -8,10 +8,13 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.aispring.config.JwtConfig;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.Getter;
+import org.apache.tomcat.util.http.fileupload.RequestContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Date;
 @Component
@@ -37,9 +40,9 @@ public class JwtTokenUtil implements ApplicationContextAware {
             Algorithm algorithm = Algorithm.HMAC256(jwtConfig.getSecret());
             Date expiration = new Date((System.currentTimeMillis() + jwtConfig.getExpiration()));
             String token = JWT.create()
-                    .withClaim("userID", userID)
+                    .withClaim("userId", Long.valueOf(userID))
                     .withClaim("username", username)
-                    .withClaim("roletype", roletype)
+                    .withClaim("roleType", Integer.valueOf(roletype))
                     .withIssuedAt(new Date())
                     .withIssuer(ISSUER)
                     .withExpiresAt(expiration)
@@ -59,6 +62,19 @@ public class JwtTokenUtil implements ApplicationContextAware {
         }
         return null;
     }
+    public static String getCurrentToken() {
+      ServletRequestAttributes  attributes = (ServletRequestAttributes)RequestContextHolder.getRequestAttributes();
+      if(attributes != null){
+         HttpServletRequest request = attributes.getRequest();
+         String token =(String) request.getAttribute("jwtToken");
+         if(token != null){
+            return token;
+         }
+        String headerToken = extractTokenFromRequest(request);
+         return headerToken;
+      }
+        return null;
+    }
     // 验证token
     public static TokenVerificationResult validateToken(String token) {
         DecodedJWT jwt = verifyToken(token);
@@ -66,15 +82,7 @@ public class JwtTokenUtil implements ApplicationContextAware {
         String username = jwt.getClaim("username").asString();
 
         // 角色类型
-        Integer roleType = null;
-        try {
-            roleType = jwt.getClaim("roleType").asInt();
-        } catch (Exception e) {
-            String roleTypeStr = jwt.getClaim("roleType").asString();
-            if (StringUtils.hasText(roleTypeStr)) {
-                roleType = Integer.valueOf(roleTypeStr);
-            }
-        }
+        Integer roleType = jwt.getClaim("roleType").asInt();
         if (userId != null && StringUtils.hasText(username) && roleType != null) {
             return new TokenVerificationResult(userId, username, roleType, true);
         }

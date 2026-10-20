@@ -80,4 +80,11 @@ public class UserService {
 
        return UserConvert.entityToDetailResponse(user);
    }
+    public UserLoginResponseDTO.UserDetailResponseDTO getUserById(Long userId) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+        return UserConvert.entityToDetailResponse(user);
+    }
 }
