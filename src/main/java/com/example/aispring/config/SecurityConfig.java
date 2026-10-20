@@ -1,5 +1,7 @@
 package com.example.aispring.config;
 
+import cn.hutool.core.text.AntPathMatcher;
+import com.example.aispring.util.JwtAuthenticationFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -8,13 +10,29 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
+    private static final AntPathMatcher antPathMatcher = new AntPathMatcher();
     private static  final  String[] PUBLIC_PATHS = {
             "/","/error","/api/test","/api/user/login","/api/user/add"};
+
+    public static Boolean isPublicPATH(String requestUri) {
+        for (String publicPath : PUBLIC_PATHS) {
+            if (antPathMatcher.match(publicPath, requestUri)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter();
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
      http
@@ -29,6 +47,8 @@ public class SecurityConfig {
                      .anyRequest().authenticated()
 
              );
+     //添加JWT认证过滤器
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
   return http.build();
     }
 }

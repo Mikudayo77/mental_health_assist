@@ -1,16 +1,15 @@
 package com.example.aispring.controller;
 
+import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.aispring.DTO.command.UserLoginCommandDTO;
 import com.example.aispring.DTO.command.UserRegisterCommandDTO;
 import com.example.aispring.DTO.response.UserLoginResponseDTO;
 import com.example.aispring.common.Result;
 import com.example.aispring.service.UserService;
+import com.example.aispring.util.JwtTokenUtil;
 import jakarta.annotation.Resource;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/user")
@@ -31,5 +30,17 @@ public class User {
     public Result<UserLoginResponseDTO.UserDetailResponseDTO> register(@Valid @RequestBody UserRegisterCommandDTO commandDTO) {
         UserLoginResponseDTO.UserDetailResponseDTO result = userService.register(commandDTO);
         return Result.ok(result);
+    }
+
+    @GetMapping("/current")
+    public Result<UserLoginResponseDTO.UserDetailResponseDTO> getCurrentUser() {
+        // 如何从token中解析出用户的id
+//        String token = JwtTokenUtil.getCurrentToken();
+//        DecodedJWT jwt = JwtTokenUtil.verifyToken(token);
+//        Long userId = jwt.getClaim("userId").asLong();
+//        // 调用service层获取用户详情
+//        UserLoginResponseDTO.UserDetailResponseDTO result = userService.getUserById(userId);
+//        return Result.ok(result);
+        return null;
     }
 }
