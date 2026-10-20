@@ -28,7 +28,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         //提取token
         String token =JwtTokenUtil.extractTokenFromRequest(request);
         if(StringUtils.hasText(token)){
-
+            JwtTokenUtil.TokenVerificationResult validationResult = JwtTokenUtil.validateToken(token);
         }else {
             // 清理上下文
             clearSecurityContext();
