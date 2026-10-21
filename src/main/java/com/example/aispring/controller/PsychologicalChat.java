@@ -1,18 +1,27 @@
 package com.example.aispring.controller;
 
+import cn.hutool.json.JSONUtil;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.example.aispring.AiService.PsychologicalSupportService;
 import com.example.aispring.AiService.StructOutPut;
 import com.example.aispring.DTO.command.ConsultationSessionCreateDTO;
+import com.example.aispring.DTO.command.ConsultationStreamDTO;
 import com.example.aispring.common.Result;
+import com.example.aispring.common.ResultCode;
 import com.example.aispring.util.JwtTokenUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import reactor.core.publisher.Flux;
+
+import java.time.Duration;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/psychological-chat")
@@ -27,5 +36,20 @@ public class PsychologicalChat {
     Long userId = jwt.getClaim("userId").asLong();
     StructOutPut.StreamChatSession session = psychologicalSupportService.startSession(userId, createDTO);
     return null;
+}
+@PostMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+public Flux<ServerSentEvent<String>> streamChat(@Valid @RequestBody ConsultationStreamDTO streamDTO) {
+    // 获取当前用户
+    String token = JwtTokenUtil.getCurrentToken();
+    DecodedJWT jwt = JwtTokenUtil.verifyToken(token);
+    Long userId = jwt.getClaim("userId").asLong();
+
+    if (userId == null) {
+        return Flux.just(ServerSentEvent.<String>builder()
+                .event("error")
+                .data(JSONUtil.toJsonStr(Result.error(ResultCode.UNAUTHORIZED.getCode(), ResultCode.UNAUTHORIZED.getMsg(), "用户未登录")))
+                .build());
+    }
+return null;
 }
 }
