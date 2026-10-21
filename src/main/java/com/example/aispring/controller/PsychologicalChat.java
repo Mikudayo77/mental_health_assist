@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/psychologicalChat")
+@RequestMapping("/api/psychological-chat")
 public class PsychologicalChat {
     @Autowired
     private PsychologicalSupportService psychologicalSupportService;
