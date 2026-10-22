@@ -9,11 +9,11 @@ spring:
     openai:
       chat:
         options:
-          model: deepseek-ai/DeepSeek-V3
+          model: deepseek-flash
           tool-calling:
             enabled: true
         completions-path: /v1/chat/completions
-      api-key: ${DEEPSEEK_API_KEY}  #你的api-key
+      api-key:  ${DEEPSEEK_API_KEY}  #你的api-key
       base-url: https://api.deepseek.com
 
 server:

@@ -35,7 +35,7 @@ public class PsychologicalChat {
     DecodedJWT jwt = JwtTokenUtil.verifyToken(token);
     Long userId = jwt.getClaim("userId").asLong();
     StructOutPut.StreamChatSession session = psychologicalSupportService.startSession(userId, createDTO);
-    return null;
+    return Result.ok(session);
 }
 @PostMapping(value = "/stream",produces = MediaType.TEXT_EVENT_STREAM_VALUE)
 public Flux<ServerSentEvent<String>> streamChat(@Valid @RequestBody ConsultationStreamDTO streamDTO) {
@@ -50,6 +50,19 @@ public Flux<ServerSentEvent<String>> streamChat(@Valid @RequestBody Consultation
                 .data(JSONUtil.toJsonStr(Result.error(ResultCode.UNAUTHORIZED.getCode(), ResultCode.UNAUTHORIZED.getMsg(), "用户未登录")))
                 .build());
     }
-return null;
+    // 开始流式对话
+    return psychologicalSupportService.streamPsychologicalChat(streamDTO.getSessionId(), streamDTO.getUserMessage())
+            .map(Fragment -> {
+                return ServerSentEvent.<String>builder()
+                        .event("message")
+                        .data(JSONUtil.toJsonStr(Result.ok(Map.of("content", Fragment, "type", "normal"))))
+                        .build();
+            })
+            .concatWith(Flux.just(ServerSentEvent.<String>builder()
+                    .event("done")
+                    .data("{}")
+                    .build()
+            ))
+            .delayElements(Duration.ofMillis(50)); // 添加延迟确保流式数据的体验
 }
 }

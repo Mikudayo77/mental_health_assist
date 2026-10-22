@@ -97,25 +97,24 @@ public class PsychologicalSupportService {
                     .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId))
                     .stream()
                     .content()
-                    .doOnNext(Fragment -> {
-                        fullResponse.append(Fragment);
-                        sink.next(Fragment);
-                    })
-                    .doOnComplete(() -> {
-                        String completeRes = fullResponse.toString();
-                        // 将AI返回的内容保存到数据库
-                        consultationMessageService.saveAimessage(dbSessionId, completeRes, "openai");
-                        // 添加AI回复到chatMemory
-                        List<Message> aiMessages = new ArrayList<>();
-                        aiMessages.add(new AssistantMessage(completeRes));
-                        chatMemory.add(conversationId, aiMessages);
+                    .subscribe(
+                            fragment -> {
+                                fullResponse.append(fragment);
+                                sink.next(fragment);
+                            },
+                            sink::error,
+                            () -> {
+                                String completeRes = fullResponse.toString();
+                                // 将AI返回的内容保存到数据库
+                                consultationMessageService.saveAimessage(dbSessionId, completeRes, "openai");
+                                // 添加AI回复到chatMemory
+                                List<Message> aiMessages = new ArrayList<>();
+                                aiMessages.add(new AssistantMessage(completeRes));
+                                chatMemory.add(conversationId, aiMessages);
 
-                        sink.complete();
-                    })
-                    .doOnError(error -> {
-                        sink.error(error);
-                    })
-                    .subscribe(); // 订阅并启动流
+                                sink.complete();
+                            }
+                    ); // 订阅并启动流
         });
     }
 
