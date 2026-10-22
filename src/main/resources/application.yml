@@ -5,6 +5,17 @@ spring:
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  ai:
+    openai:
+      chat:
+        options:
+          model: deepseek-ai/DeepSeek-V3
+          tool-calling:
+            enabled: true
+        completions-path: /v1/chat/completions
+      api-key: ${DEEPSEEK_API_KEY}  #你的api-key
+      base-url: https://api.deepseek.com
+
 server:
   port: 1236
 
