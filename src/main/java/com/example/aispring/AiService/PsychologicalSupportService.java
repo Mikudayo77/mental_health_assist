@@ -7,6 +7,11 @@ import com.example.aispring.service.ConsultationMessageService;
 import com.example.aispring.service.ConsultationSessionService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.messages.AssistantMessage;
+import org.springframework.ai.chat.messages.Message;
+import org.springframework.ai.chat.messages.SystemMessage;
+import org.springframework.ai.chat.messages.UserMessage;
+import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
@@ -72,7 +77,45 @@ public class PsychologicalSupportService {
                 consultationMessageService.saveUserMessage(dbSessionId, userMessage, null);
             }
 
+            // 进行流式对话
+            // 生成对话记忆管理
+            String conversationId = "conversation_" + sessionId;
+            // 构建系统提示词
+            List<Message> userMessages = new ArrayList<>();
+            userMessages.add(new UserMessage(userMessage));
+            chatMemory.add(conversationId, userMessages);
+            Prompt prompt = new Prompt(List.of(
+                    new SystemMessage(PromptManage.PSYCHOLOGICAL_SUPPORT_SYSTEM_PROMPT)
+            ));
 
+            //用于存储AI完成的响应
+            StringBuilder fullResponse = new StringBuilder();
+
+            // 使用chatClient发送消息到Open AI
+            chatClient.prompt(prompt)
+                    .user(userMessage)
+                    .advisors(advisorSpec -> advisorSpec.param(ChatMemory.CONVERSATION_ID, conversationId))
+                    .stream()
+                    .content()
+                    .doOnNext(Fragment -> {
+                        fullResponse.append(Fragment);
+                        sink.next(Fragment);
+                    })
+                    .doOnComplete(() -> {
+                        String completeRes = fullResponse.toString();
+                        // 将AI返回的内容保存到数据库
+                        consultationMessageService.saveAimessage(dbSessionId, completeRes, "openai");
+                        // 添加AI回复到chatMemory
+                        List<Message> aiMessages = new ArrayList<>();
+                        aiMessages.add(new AssistantMessage(completeRes));
+                        chatMemory.add(conversationId, aiMessages);
+
+                        sink.complete();
+                    })
+                    .doOnError(error -> {
+                        sink.error(error);
+                    })
+                    .subscribe(); // 订阅并启动流
         });
     }
 
