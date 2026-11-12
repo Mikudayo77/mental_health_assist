@@ -1,0 +1,788 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "AIspring 心理咨询模块 API",
+    "version": "1.0.0",
+    "description": "心理咨询预约 / 套餐 / 订单 / 模拟支付 / 退款 / 人工咨询 / 危机干预 / 通知。鉴权：请求头 token（登录接口返回 data.token）。角色编码：1 普通用户、2 管理员、3 咨询师。业务错误 HTTP 200，code=BUSINESS_ERROR；未登录 401；角色不符 403。"
+  },
+  "servers": [
+    { "url": "http://localhost:1236", "description": "本地环境" }
+  ],
+  "tags": [
+    { "name": "认证" },
+    { "name": "AI 心理聊天" },
+    { "name": "咨询师" },
+    { "name": "套餐" },
+    { "name": "预约" },
+    { "name": "订单" },
+    { "name": "支付" },
+    { "name": "退款" },
+    { "name": "人工咨询" },
+    { "name": "危机干预" },
+    { "name": "通知" }
+  ],
+  "security": [
+    { "tokenAuth": [] }
+  ],
+  "components": {
+    "securitySchemes": {
+      "tokenAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "token",
+        "description": "登录接口返回的 JWT，直接放在 token 请求头，无需 Bearer 前缀"
+      }
+    },
+    "parameters": {
+      "page": { "name": "page", "in": "query", "required": false, "schema": { "type": "integer", "default": 1 }, "description": "页码，从 1 开始" },
+      "size": { "name": "size", "in": "query", "required": false, "schema": { "type": "integer", "default": 10 }, "description": "每页条数" },
+      "status": { "name": "status", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "状态筛选，各模块含义见文档枚举字典" },
+      "auditStatus": { "name": "auditStatus", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "0 待审核 / 1 已通过 / 2 已拒绝" },
+      "name": { "name": "name", "in": "query", "required": false, "schema": { "type": "string" }, "description": "套餐名称模糊搜索" },
+      "riskLevel": { "name": "riskLevel", "in": "query", "required": false, "schema": { "type": "string", "enum": ["LOW", "MEDIUM", "HIGH"] }, "description": "风险等级" },
+      "handleStatus": { "name": "handleStatus", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "0 待处理 / 1 已处理" },
+      "type": { "name": "type", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "通知类型：1 预约 / 2 退款 / 3 危机 / 4 审核" },
+      "readFlag": { "name": "readFlag", "in": "query", "required": false, "schema": { "type": "integer" }, "description": "0 未读 / 1 已读" },
+      "appointmentId": { "name": "appointmentId", "in": "query", "required": true, "schema": { "type": "integer", "format": "int64" }, "description": "预约 ID" },
+      "afterId": { "name": "afterId", "in": "query", "required": false, "schema": { "type": "integer", "format": "int64", "default": 0 }, "description": "上次拉取到的最大消息 ID，首次传 0" },
+      "limit": { "name": "limit", "in": "query", "required": false, "schema": { "type": "integer", "default": 100 }, "description": "拉取条数，服务端限制 1~200" }
+    },
+    "schemas": {
+      "Result": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "example": "200", "description": "200 成功；BUSINESS_ERROR 业务失败；400 参数错误；401 未授权" },
+          "msg": { "type": "string", "example": "操作成功" },
+          "data": { "nullable": true, "description": "业务数据" }
+        }
+      },
+      "PageResult": {
+        "type": "object",
+        "properties": {
+          "total": { "type": "integer", "format": "int64" },
+          "records": { "type": "array", "items": { "type": "object" } }
+        }
+      },
+      "UserRegister": {
+        "type": "object",
+        "required": ["username", "email", "password", "confirmPassword"],
+        "properties": {
+          "username": { "type": "string", "minLength": 3, "maxLength": 50, "example": "zhangsan" },
+          "email": { "type": "string", "format": "email", "example": "zhangsan@test.com" },
+          "nickname": { "type": "string", "example": "张三" },
+          "phone": { "type": "string", "example": "13800138000" },
+          "password": { "type": "string", "minLength": 6, "maxLength": 50, "example": "password123" },
+          "confirmPassword": { "type": "string", "example": "password123" },
+          "gender": { "type": "integer" },
+          "userType": { "type": "integer", "description": "已忽略，注册统一为普通用户(1)" },
+          "birthday": { "type": "string", "format": "date", "example": "1998-05-01" }
+        }
+      },
+      "UserLogin": {
+        "type": "object",
+        "required": ["username", "password"],
+        "properties": {
+          "username": { "type": "string", "example": "zhangsan" },
+          "password": { "type": "string", "example": "password123" }
+        }
+      },
+      "SessionCreate": {
+        "type": "object",
+        "required": ["initialMessage"],
+        "properties": {
+          "sessionTitle": { "type": "string", "example": "最近很焦虑" },
+          "initialMessage": { "type": "string", "example": "最近压力很大，睡不好" }
+        }
+      },
+      "StreamChat": {
+        "type": "object",
+        "required": ["sessionId", "userMessage"],
+        "properties": {
+          "sessionId": { "type": "string", "example": "session_1" },
+          "userMessage": { "type": "string", "example": "我最近压力很大" }
+        }
+      },
+      "CounselorApply": {
+        "type": "object",
+        "required": ["realName", "qualificationNo"],
+        "properties": {
+          "realName": { "type": "string", "example": "张三" },
+          "gender": { "type": "integer", "example": 1 },
+          "phone": { "type": "string", "example": "13800138000" },
+          "email": { "type": "string", "format": "email", "example": "zhangsan@test.com" },
+          "qualificationNo": { "type": "string", "example": "CERT-2026-001" },
+          "certificationFileUrl": { "type": "string", "example": "https://example.com/cert.jpg" },
+          "specialty": { "type": "string", "example": "焦虑、抑郁" },
+          "introduction": { "type": "string", "example": "国家二级心理咨询师" },
+          "yearsOfExperience": { "type": "integer", "example": 8 }
+        }
+      },
+      "CounselorAudit": {
+        "type": "object",
+        "required": ["counselorId", "auditStatus"],
+        "properties": {
+          "counselorId": { "type": "integer", "format": "int64", "example": 1 },
+          "auditStatus": { "type": "integer", "enum": [1, 2], "example": 1, "description": "1 通过 / 2 拒绝" },
+          "auditRemark": { "type": "string", "example": "资料齐全，通过" }
+        }
+      },
+      "PackageCommand": {
+        "type": "object",
+        "required": ["name", "durationMinutes", "price"],
+        "properties": {
+          "name": { "type": "string", "example": "深度咨询(60分钟)" },
+          "description": { "type": "string", "example": "适合深入探讨心理困扰" },
+          "durationMinutes": { "type": "integer", "minimum": 10, "maximum": 240, "example": 60 },
+          "price": { "type": "number", "example": 199.0 },
+          "status": { "type": "integer", "enum": [0, 1], "example": 1, "description": "0 下架 / 1 上架" }
+        }
+      },
+      "AppointmentCreate": {
+        "type": "object",
+        "required": ["counselorId", "packageId", "appointmentStart"],
+        "properties": {
+          "counselorId": { "type": "integer", "format": "int64", "example": 1 },
+          "packageId": { "type": "integer", "format": "int64", "example": 2 },
+          "appointmentStart": { "type": "string", "format": "date-time", "example": "2026-10-25T15:00:00", "description": "未来时间，格式 yyyy-MM-ddTHH:mm:ss，不带时区" }
+        }
+      },
+      "CancelOrder": {
+        "type": "object",
+        "required": ["orderNo"],
+        "properties": {
+          "orderNo": { "type": "string", "example": "CO202610222105478680556" }
+        }
+      },
+      "MockPay": {
+        "type": "object",
+        "required": ["orderNo"],
+        "properties": {
+          "orderNo": { "type": "string", "example": "CO202610222105478680556" }
+        }
+      },
+      "RefundApply": {
+        "type": "object",
+        "required": ["orderId"],
+        "properties": {
+          "orderId": { "type": "integer", "format": "int64", "example": 1 },
+          "reason": { "type": "string", "example": "时间冲突，无法参加" }
+        }
+      },
+      "RefundAudit": {
+        "type": "object",
+        "required": ["refundId", "approve"],
+        "properties": {
+          "refundId": { "type": "integer", "format": "int64", "example": 1 },
+          "approve": { "type": "boolean", "example": true },
+          "rejectReason": { "type": "string", "example": "不符合退款条件" }
+        }
+      },
+      "ChatSend": {
+        "type": "object",
+        "required": ["appointmentId", "content"],
+        "properties": {
+          "appointmentId": { "type": "integer", "format": "int64", "example": 1 },
+          "content": { "type": "string", "maxLength": 2000, "example": "最近总是失眠，很焦虑" }
+        }
+      },
+      "CrisisHandle": {
+        "type": "object",
+        "required": ["crisisId", "handleStatus"],
+        "properties": {
+          "crisisId": { "type": "integer", "format": "int64", "example": 3 },
+          "handleStatus": { "type": "integer", "enum": [0, 1], "example": 1 },
+          "handleRemark": { "type": "string", "example": "已电话回访" }
+        }
+      }
+    },
+    "responses": {
+      "Ok": {
+        "description": "业务响应，需断言 code == 200",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Result" }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "未登录或 token 失效，HTTP 401",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Result" }
+          }
+        }
+      },
+      "Forbidden": {
+        "description": "角色无权限，HTTP 403，响应体为空"
+      }
+    }
+  },
+  "paths": {
+    "/api/user/add": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "注册（免登录）",
+        "security": [],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserRegister" } } } },
+        "responses": { "200": { "$ref": "#/components/responses/Ok" } }
+      }
+    },
+    "/api/user/login": {
+      "post": {
+        "tags": ["认证"],
+        "summary": "登录（免登录），返回 data.token 与 data.roleType",
+        "security": [],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/UserLogin" } } } },
+        "responses": { "200": { "$ref": "#/components/responses/Ok" } }
+      }
+    },
+    "/api/user/current": {
+      "get": {
+        "tags": ["认证"],
+        "summary": "当前登录用户信息",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/psychological-chat/session/start": {
+      "post": {
+        "tags": ["AI 心理聊天"],
+        "summary": "创建 AI 会话",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/SessionCreate" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/psychological-chat/stream": {
+      "post": {
+        "tags": ["AI 心理聊天"],
+        "summary": "SSE 流式对话",
+        "description": "响应 text/event-stream：event:message 的 data 为 Result 字符串，data.data 内含 content 与 type（normal / crisis）；最后 event:done。Apifox 请使用 SSE/流式视图，或复制为 cURL 执行。",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StreamChat" } } } },
+        "responses": {
+          "200": {
+            "description": "SSE 事件流",
+            "content": { "text/event-stream": { "schema": { "type": "string" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/counselor/apply": {
+      "post": {
+        "tags": ["咨询师"],
+        "summary": "提交咨询师申请（普通用户）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CounselorApply" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/counselor/my": {
+      "get": {
+        "tags": ["咨询师"],
+        "summary": "我的咨询师申请资料（用户/咨询师）",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/counselor/list": {
+      "get": {
+        "tags": ["咨询师"],
+        "summary": "已通过且启用的咨询师列表（用户/咨询师）",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/counselor/page": {
+      "get": {
+        "tags": ["咨询师"],
+        "summary": "咨询师申请分页（管理员）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/auditStatus" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/counselor/audit": {
+      "post": {
+        "tags": ["咨询师"],
+        "summary": "审核咨询师申请（管理员）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CounselorAudit" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/package/create": {
+      "post": {
+        "tags": ["套餐"],
+        "summary": "新建套餐（管理员）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PackageCommand" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/package/update/{id}": {
+      "put": {
+        "tags": ["套餐"],
+        "summary": "修改套餐（管理员）",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PackageCommand" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/package/{id}": {
+      "delete": {
+        "tags": ["套餐"],
+        "summary": "删除套餐（管理员），被订单引用时拒绝",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/package/status/{id}/{status}": {
+      "put": {
+        "tags": ["套餐"],
+        "summary": "套餐上下架（管理员）",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "status", "in": "path", "required": true, "schema": { "type": "integer", "enum": [0, 1] }, "description": "0 下架 / 1 上架" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/package/page": {
+      "get": {
+        "tags": ["套餐"],
+        "summary": "套餐分页（管理员）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/name" },
+          { "$ref": "#/components/parameters/status" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/package/list": {
+      "get": {
+        "tags": ["套餐"],
+        "summary": "上架套餐列表（用户/咨询师）",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/create": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "创建预约并生成未支付订单（普通用户）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AppointmentCreate" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/mine": {
+      "get": {
+        "tags": ["预约"],
+        "summary": "我的预约（普通用户）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/status" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/counselor": {
+      "get": {
+        "tags": ["预约"],
+        "summary": "咨询师名下预约（咨询师）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/status" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/{id}": {
+      "get": {
+        "tags": ["预约"],
+        "summary": "预约详情（归属用户或咨询师）",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/{id}/confirm": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "确认预约（咨询师）",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/{id}/reject": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "拒绝预约（咨询师），已支付自动全额退款",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "reason", "in": "query", "required": false, "schema": { "type": "string" }, "description": "拒绝原因" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/{id}/cancel": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "取消预约（普通用户），已支付自动全额退款",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } },
+          { "name": "reason", "in": "query", "required": false, "schema": { "type": "string" }, "description": "取消原因" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/appointment/{id}/complete": {
+      "post": {
+        "tags": ["预约"],
+        "summary": "标记完成（咨询师），要求当前时间不早于预约开始时间",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/order/mine": {
+      "get": {
+        "tags": ["订单"],
+        "summary": "我的订单（普通用户）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/status" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/order/{orderNo}": {
+      "get": {
+        "tags": ["订单"],
+        "summary": "订单详情，含支付与退款记录（普通用户）",
+        "parameters": [
+          { "name": "orderNo", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/order/cancel": {
+      "post": {
+        "tags": ["订单"],
+        "summary": "取消未支付订单（普通用户）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CancelOrder" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/payment/mock-pay": {
+      "post": {
+        "tags": ["支付"],
+        "summary": "模拟支付（普通用户）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MockPay" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/payment/{orderNo}": {
+      "get": {
+        "tags": ["支付"],
+        "summary": "订单支付记录（普通用户）",
+        "parameters": [
+          { "name": "orderNo", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/refund/preview/{orderId}": {
+      "get": {
+        "tags": ["退款"],
+        "summary": "退款预览（普通用户）",
+        "parameters": [
+          { "name": "orderId", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/refund/apply": {
+      "post": {
+        "tags": ["退款"],
+        "summary": "提交退款申请（普通用户）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RefundApply" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/refund/mine": {
+      "get": {
+        "tags": ["退款"],
+        "summary": "我的退款记录（普通用户）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/refund/page": {
+      "get": {
+        "tags": ["退款"],
+        "summary": "全部退款分页（管理员）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/status" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/refund/audit": {
+      "post": {
+        "tags": ["退款"],
+        "summary": "退款审核（管理员），按审核时刻重新计算金额",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/RefundAudit" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/counseling-chat/send": {
+      "post": {
+        "tags": ["人工咨询"],
+        "summary": "发送咨询消息（用户/咨询师）",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ChatSend" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/counseling-chat/messages": {
+      "get": {
+        "tags": ["人工咨询"],
+        "summary": "增量拉取消息（用户/咨询师）",
+        "parameters": [
+          { "$ref": "#/components/parameters/appointmentId" },
+          { "$ref": "#/components/parameters/afterId" },
+          { "$ref": "#/components/parameters/limit" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/crisis/page": {
+      "get": {
+        "tags": ["危机干预"],
+        "summary": "危机记录分页（管理员）",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/riskLevel" },
+          { "$ref": "#/components/parameters/handleStatus" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/crisis/{id}": {
+      "get": {
+        "tags": ["危机干预"],
+        "summary": "危机记录详情（管理员）",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/crisis/{id}/handle": {
+      "post": {
+        "tags": ["危机干预"],
+        "summary": "处理危机记录（管理员）",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CrisisHandle" } } } },
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" }
+        }
+      }
+    },
+    "/api/notification/mine": {
+      "get": {
+        "tags": ["通知"],
+        "summary": "我的通知",
+        "parameters": [
+          { "$ref": "#/components/parameters/page" },
+          { "$ref": "#/components/parameters/size" },
+          { "$ref": "#/components/parameters/type" },
+          { "$ref": "#/components/parameters/readFlag" }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/notification/unread-count": {
+      "get": {
+        "tags": ["通知"],
+        "summary": "未读通知数量",
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    },
+    "/api/notification/{id}/read": {
+      "put": {
+        "tags": ["通知"],
+        "summary": "标记通知已读",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "integer", "format": "int64" } }
+        ],
+        "responses": {
+          "200": { "$ref": "#/components/responses/Ok" },
+          "401": { "$ref": "#/components/responses/Unauthorized" }
+        }
+      }
+    }
+  }
+}
