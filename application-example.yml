@@ -1,0 +1,33 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mental_health_assistant?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: root
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  ai:
+    openai:
+      chat:
+        options:
+          model: deepseek-flash
+          tool-calling:
+            enabled: true
+        completions-path: /v1/chat/completions
+      api-key: ${AI_API_KEY:}
+      base-url: https://api.deepseek.com
+
+server:
+  port: 1236
+
+# 模拟支付配置
+payment:
+  mock:
+    fail-rate: 0  # 模拟支付失败概率 0~1，0=总是成功，联调时可改为 1 测试失败路径
+
+# JWT配置
+jwt:
+  secret: ${JWT_SECRET:please-change-this-secret}
+  expiration: 86400000  # 24小时（毫秒）
+  refresh-expiration: 604800000  # 7天（毫秒）
+  header: Authorization  # token头部名称
+  token-prefix: "Bearer "  # token前缀
