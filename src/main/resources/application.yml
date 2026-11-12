@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/mental_health_assistant?useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/mental_health_assistant?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
     username: root
     password: 123456
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -13,11 +13,16 @@ spring:
           tool-calling:
             enabled: true
         completions-path: /v1/chat/completions
-      api-key:  ${DEEPSEEK_API_KEY}  #你的api-key
+      api-key:  sk-942ddc8ab6f345a58e61594f4d14a21d  #你的api-key
       base-url: https://api.deepseek.com
 
 server:
   port: 1236
+
+# 模拟支付配置
+payment:
+  mock:
+    fail-rate: 0  # 模拟支付失败概率 0~1，0=总是成功，联调时可改为 1 测试失败路径
 
 # JWT配置
 jwt:

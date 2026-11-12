@@ -4,6 +4,10 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### 本地上传文件与备份 ###
+uploads/
+*.bak
+
 ### STS ###
 .apt_generated
 .classpath

@@ -32,6 +32,12 @@ public class User {
         return Result.ok(result);
     }
 
+    @PostMapping("/logout")
+    public Result<Void> logout() {
+        // JWT 无状态，服务端不保存会话，前端负责清掉本地 token 与用户信息
+        return Result.ok();
+    }
+
     @GetMapping("/current")
     public Result<UserLoginResponseDTO.UserDetailResponseDTO> getCurrentUser() {
 //         如何从token中解析出用户的id

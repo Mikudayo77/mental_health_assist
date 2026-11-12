@@ -75,6 +75,15 @@ public class JwtTokenUtil implements ApplicationContextAware {
       }
         return null;
     }
+
+    /**
+     * 获取当前登录用户ID（过滤器已保证 token 有效）
+     */
+    public static Long getCurrentUserId() {
+        DecodedJWT jwt = verifyToken(getCurrentToken());
+        return jwt.getClaim("userId").asLong();
+    }
+
     // 验证token
     public static TokenVerificationResult validateToken(String token) {
         DecodedJWT jwt = verifyToken(token);

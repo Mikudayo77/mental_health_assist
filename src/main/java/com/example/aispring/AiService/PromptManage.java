@@ -26,4 +26,27 @@ public class PromptManage {
                     "- 可以适当使用表情符号增加亲和力\n" +
                     "- 结合大学生的生活场景给出建议\n" +
                     "\n重要：请全程使用简体中文(Chinese)进行温暖的交流和回复。";
+
+    public static final String CRISIS_RISK_ASSESS_PROMPT =
+            "你是心理危机干预评估专家。请评估以下用户消息的自杀/自伤风险等级。\n" +
+            "评级标准：\n" +
+            "- LOW: 无自杀自伤迹象，仅为一般负面情绪表达\n" +
+            "- MEDIUM: 出现自伤/自杀念头但无具体计划\n" +
+            "- HIGH: 有具体自杀计划、正在实施、或表达告别/绝望/永别\n" +
+            "只输出一个JSON对象，不要输出任何其他文字，格式：{\"level\":\"LOW|MEDIUM|HIGH\",\"reason\":\"简要理由\"}\n" +
+            "用户消息：%s";
+
+    public static final String EMOTION_ANALYSIS_PROMPT =
+            "你是情绪分析引擎。请分析下面这段用户的倾诉或日记，评估其当下的情绪状态。\n" +
+            "只输出一个JSON对象，不要输出任何其他文字，不要使用markdown代码块，格式：\n" +
+            "{\"primaryEmotion\":\"主要情绪，2-4个汉字，如：焦虑/平静/低落/疲惫/开心\"," +
+            "\"emotionScore\":0到100的整数," +
+            "\"isNegative\":true或false," +
+            "\"riskLevel\":0到3的整数," +
+            "\"suggestion\":\"一句温和的建议，30字以内\"," +
+            "\"improvementSuggestions\":[\"具体可执行的小行动\",\"小行动\",\"小行动\"]," +
+            "\"riskDescription\":\"风险说明，无风险时为空字符串\"}\n" +
+            "riskLevel判定：0=正常，1=需要关注，2=预警（持续低落或强烈焦虑），3=危机（出现自伤自杀倾向）。\n" +
+            "emotionScore越高代表情绪越积极稳定；improvementSuggestions给2到3条，每条不超过20字。\n" +
+            "用户内容：%s";
 }

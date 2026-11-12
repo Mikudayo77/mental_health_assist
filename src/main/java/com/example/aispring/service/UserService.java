@@ -67,8 +67,12 @@ public class UserService {
        if(userMapper.selectCount(new LambdaQueryWrapper<User>().eq(User::getEmail, commandDTO.getEmail())) > 0){
            throw new BusinessException("邮箱已被注册");
        }
-       if(!UserType.isValidCode(commandDTO.getUserType())){
-           throw new BusinessException("用户类型无效");
+       // 注册入口只允许普通用户；管理员/咨询师必须通过后台或审核流程产生，防止越权注册
+       commandDTO.setUserType(UserType.USER.getCode());
+       // user.phone 上有唯一索引，空字符串会被当成一个真实值导致第二个用户注册失败，
+       // 这里把空手机号归一成 null（唯一索引允许多个 null）
+       if (commandDTO.getPhone() != null && commandDTO.getPhone().trim().isEmpty()) {
+           commandDTO.setPhone(null);
        }
        // 创建用户
        String password = commandDTO.getPassword().trim();
