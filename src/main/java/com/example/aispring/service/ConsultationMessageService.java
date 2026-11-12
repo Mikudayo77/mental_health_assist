@@ -48,6 +48,29 @@ public class ConsultationMessageService {
         Long count = consultationMessageMapper.selectCount(queryWrapper);
         return count.intValue();
     }
+    /**
+     * 按会话查询全部消息（时间正序），供前端渲染历史对话
+     */
+    public java.util.List<ConsultationMessageResponseDTO> listMessagesBySessionId(Long sessionId) {
+        LambdaQueryWrapper<ConsultationMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ConsultationMessage::getSessionId, sessionId)
+                .orderByAsc(ConsultationMessage::getCreatedAt)
+                .orderByAsc(ConsultationMessage::getId);
+
+        return consultationMessageMapper.selectList(queryWrapper).stream()
+                .map(this::convertToResponseDTO)
+                .toList();
+    }
+
+    /**
+     * 删除会话下的全部消息，返回删除条数
+     */
+    public int deleteBySessionId(Long sessionId) {
+        LambdaQueryWrapper<ConsultationMessage> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(ConsultationMessage::getSessionId, sessionId);
+        return consultationMessageMapper.delete(queryWrapper);
+    }
+
     public ConsultationMessageResponseDTO getLastMessageBySessionId(Long sessionId) {
         LambdaQueryWrapper<ConsultationMessage> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(ConsultationMessage::getSessionId, sessionId)

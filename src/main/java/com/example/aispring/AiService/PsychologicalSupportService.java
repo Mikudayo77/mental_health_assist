@@ -2,9 +2,13 @@ package com.example.aispring.AiService;
 
 import com.example.aispring.DTO.command.ConsultationSessionCreateDTO;
 import com.example.aispring.DTO.response.ConsultationMessageResponseDTO;
+import com.example.aispring.common.constant.CrisisConstant;
 import com.example.aispring.entity.ConsultationSession;
+import com.example.aispring.enumClass.CrisisRiskLevel;
+import com.example.aispring.enumClass.CrisisSourceType;
 import com.example.aispring.service.ConsultationMessageService;
 import com.example.aispring.service.ConsultationSessionService;
+import com.example.aispring.service.CrisisInterventionService;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.messages.AssistantMessage;
@@ -33,6 +37,13 @@ public class PsychologicalSupportService {
 
     @Autowired
     private ConsultationMessageService consultationMessageService;
+
+    @Autowired
+    private CrisisInterventionService crisisInterventionService;
+
+    @Autowired
+    private com.example.aispring.service.EmotionAnalysisService emotionAnalysisService;
+
     public StructOutPut.StreamChatSession startSession(Long userId, ConsultationSessionCreateDTO createDTO) {
         // 创建数据库会话记录
         ConsultationSession consultationSession = consultationSessionService.createSession(userId, createDTO);
@@ -51,7 +62,9 @@ public class PsychologicalSupportService {
                 1,
                 "ACTIVE"
         );
-}  public Flux<String> streamPsychologicalChat(String sessionId, String userMessage) {
+}
+
+    public Flux<StructOutPut.ChatFragment> streamPsychologicalChat(Long userId, String sessionId, String userMessage) {
         // 创建响应流
         return Flux.create(sink -> {
             // sink.next("数据1") // 发布数据
@@ -61,6 +74,19 @@ public class PsychologicalSupportService {
             if (dbSessionId == null) {
                 sink.error(new RuntimeException("会话ID格式错误"));
                 return;
+            }
+
+            // 危机干预：敏感词命中后才调用AI评级，高风险优先推送求助热线
+            List<String> crisisHits = crisisInterventionService.matchSensitiveWords(userMessage);
+            if (!crisisHits.isEmpty()) {
+                CrisisInterventionService.RiskAssessment assessment =
+                        crisisInterventionService.assessRisk(userMessage);
+                crisisInterventionService.recordAndNotify(userId, CrisisSourceType.AI_CHAT.getCode(),
+                        dbSessionId, userMessage, crisisHits, assessment, null);
+                if (CrisisRiskLevel.HIGH.equals(assessment.level())) {
+                    sink.next(new StructOutPut.ChatFragment(
+                            CrisisConstant.CRISIS_HOTLINE_TEXT, CrisisConstant.CRISIS_FRAGMENT_TYPE));
+                }
             }
             // 是否为初始消息
             boolean isInitialMessage = false;
@@ -100,7 +126,8 @@ public class PsychologicalSupportService {
                     .subscribe(
                             fragment -> {
                                 fullResponse.append(fragment);
-                                sink.next(fragment);
+                                sink.next(new StructOutPut.ChatFragment(
+                                        fragment, CrisisConstant.NORMAL_FRAGMENT_TYPE));
                             },
                             sink::error,
                             () -> {
@@ -111,6 +138,10 @@ public class PsychologicalSupportService {
                                 List<Message> aiMessages = new ArrayList<>();
                                 aiMessages.add(new AssistantMessage(completeRes));
                                 chatMemory.add(conversationId, aiMessages);
+
+                                // 异步做情绪分析并写回会话，供前端"情绪花园"展示（不阻塞流式返回）
+                                emotionAnalysisService.analyzeSessionAsync(dbSessionId,
+                                        "用户说：" + userMessage + "\nAI回复：" + completeRes);
 
                                 sink.complete();
                             }
