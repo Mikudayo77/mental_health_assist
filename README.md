@@ -87,7 +87,7 @@ mysql -uroot -p --default-character-set=utf8mb4 < db/init.sql
 | 配置 | 说明 |
 |---|---|
 | `spring.datasource.url` / `username` / `password` | 你的 MySQL 地址与账号，库名默认 `mental_health_assistant` |
-| `spring.ai.openai.api-key` | 大模型 API Key（DeepSeek 或任意 OpenAI 兼容服务），不填则 AI 相关功能不可用 |
+| `spring.ai.openai.api-key` | 大模型 API Key（DeepSeek 或任意 OpenAI 兼容服务）。**推荐用环境变量 `AI_API_KEY` 注入**，不要写进仓库；留空则 AI 相关功能不可用 |
 | `jwt.secret` | JWT 签名密钥，自行改成一串随机字符 |
 
 > `useSSL=false&allowPublicKeyRetrieval=true` 是本地开发配置，MySQL 8 的 `caching_sha2_password` 认证需要它。生产环境请改用 SSL。
