@@ -13,7 +13,7 @@ spring:
           tool-calling:
             enabled: true
         completions-path: /v1/chat/completions
-      api-key:  sk-942ddc8ab6f345a58e61594f4d14a21d  #你的api-key
+      api-key: ${AI_API_KEY:}   # 通过环境变量 AI_API_KEY 注入；留空则 AI 相关接口不可用
       base-url: https://api.deepseek.com
 
 server:
