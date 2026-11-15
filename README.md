@@ -102,7 +102,7 @@ mysql -uroot -p --default-character-set=utf8mb4 < db/init.sql
 
 ### 5. 关于前端
 
-前端为独立的 Vue 3 工程，**不在本仓库内**。本仓库只提供后端服务（端口 1236），用 Postman / Apifox 或任何 HTTP 客户端都能直接调用全部接口。
+前端为独立的 Vue 3 工程，**不在本仓库内**：[mental_health_assist_front](https://github.com/Mikudayo77/mental_health_assist_front)。本仓库只提供后端服务（端口 1236），用 Postman / Apifox 或任何 HTTP 客户端都能直接调用全部接口。
 
 若要对接前端，需保证它指向本地后端：
 
